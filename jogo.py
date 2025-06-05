@@ -1,13 +1,13 @@
 import pygame
 import sys
-import os # Usado para verificar se os arquivos existem
+import os
 
 # --- Inicialização do Pygame ---
 pygame.init()
 
 # --- Configurações da Tela ---
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Guardião Digital: O Combate aos Crimes Virtuais")
 
@@ -16,39 +16,46 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (211, 47, 47)
 GREEN = (56, 142, 60)
-BLUE = (25, 118, 210)
-DARK_BLUE = (21, 101, 192)
-LIGHT_GREY = (200, 200, 200)
-BACKGROUND_COLOR = (20, 25, 40)
+# Cor do texto do botão, um cinza escuro para contraste
+BUTTON_TEXT_COLOR = (40, 40, 40)
 
-# --- Fontes ---
-title_font = pygame.font.Font(None, 48)
-option_font = pygame.font.Font(None, 28)
-feedback_font = pygame.font.Font(None, 36)
-explanation_font = pygame.font.Font(None, 24)
-menu_font = pygame.font.Font(None, 50)
+# --- Fontes (tamanhos ajustados) ---
+title_font = pygame.font.Font(None, 70)
+option_font = pygame.font.Font(None, 32)        # <<< ALTERADO: Fonte das opções diminuída
+feedback_font = pygame.font.Font(None, 52)
+explanation_font = pygame.font.Font(None, 32)
+menu_font = pygame.font.Font(None, 70)
 
-# <<< NOVO: Carregando as imagens ---
+# --- Função para escalar imagens proporcionalmente à altura ---
+def scale_image_proportional_height(image, target_height):
+    original_width, original_height = image.get_size()
+    if original_height == 0: return image
+    aspect_ratio = original_width / original_height
+    target_width = int(target_height * aspect_ratio)
+    return pygame.transform.scale(image, (target_width, target_height))
+
+# --- Carregando e escalando as imagens ---
 try:
-    # Carrega a imagem do menu e ajusta para o tamanho da tela
+    combate_bg = pygame.image.load('combate.png').convert()
+    combate_bg = pygame.transform.scale(combate_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
     menu_image = pygame.image.load('menu.png').convert()
     menu_image = pygame.transform.scale(menu_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-    # Carrega o personagem e os inimigos com canal alfa (para transparência)
-    player_image = pygame.image.load('personagem.png').convert_alpha()
-    phishing_image = pygame.image.load('phishing.png').convert_alpha()
-    malware_image = pygame.image.load('malware.png').convert_alpha()
-    senha_image = pygame.image.load('senha.png').convert_alpha()
+    PLAYER_TARGET_HEIGHT = SCREEN_HEIGHT * 0.25
+    ENEMY_TARGET_HEIGHT = SCREEN_HEIGHT * 0.40
 
-    # Organiza as imagens dos inimigos em uma lista na ordem das fases
+    player_image = scale_image_proportional_height(pygame.image.load('personagem.png').convert_alpha(), PLAYER_TARGET_HEIGHT)
+    phishing_image = scale_image_proportional_height(pygame.image.load('phishing.png').convert_alpha(), ENEMY_TARGET_HEIGHT)
+    malware_image = scale_image_proportional_height(pygame.image.load('malware.png').convert_alpha(), ENEMY_TARGET_HEIGHT)
+    senha_image = scale_image_proportional_height(pygame.image.load('senha.png').convert_alpha(), ENEMY_TARGET_HEIGHT)
+
     enemy_images = [phishing_image, malware_image, senha_image]
 
 except pygame.error as e:
-    print(f"Erro ao carregar imagem: {e}")
-    print("\nCertifique-se que os arquivos 'menu.png', 'personagem.png', 'phishing.png', 'malware.png' e 'senha.png' estão na mesma pasta do script.")
+    print(f"Erro ao carregar ou escalar imagem: {e}")
     pygame.quit()
     sys.exit()
-
 
 # --- Dados do Jogo (Fases/Crimes) ---
 crimes = [
@@ -91,9 +98,8 @@ crimes = [
 player_health = 3
 max_player_health = 3
 current_crime_index = 0
-game_state = "menu"  # menu, playing, game_over, victory
+game_state = "menu"
 
-# Para feedback visual (certo/errado)
 feedback_message = ""
 feedback_color = WHITE
 feedback_explanation = ""
@@ -112,59 +118,84 @@ def draw_text(text, font, color, surface, x, y, center=False):
 # --- Funções de Desenho dos Estados ---
 
 def draw_menu_screen():
-    screen.blit(menu_image, (0, 0)) # Desenha a imagem de fundo do menu
-    draw_text("Clique em qualquer lugar para começar", menu_font, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 80, center=True)
+    screen.blit(menu_image, (0, 0))
+    draw_text("Clique em qualquer lugar para começar", menu_font, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.85, center=True)
 
 def draw_game_state():
-    """Desenha todos os elementos do jogo na tela."""
-    screen.fill(BACKGROUND_COLOR)
+    screen.blit(combate_bg, (0, 0))
 
-    crime = crimes[current_crime_index]
-    draw_text(crime["enemy_name"], title_font, RED, screen, SCREEN_WIDTH / 2, 40, center=True)
+    enemy_pos = (SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.38) # Posição do inimigo
+    player_pos = (SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.60) # Posição do jogador
 
-    # <<< ALTERADO: Desenha a imagem do inimigo
     current_enemy_image = enemy_images[current_crime_index]
-    enemy_rect = current_enemy_image.get_rect(center=(SCREEN_WIDTH / 2, 160))
+    enemy_rect = current_enemy_image.get_rect(center=enemy_pos)
     screen.blit(current_enemy_image, enemy_rect)
 
-    # <<< ALTERADO: Desenha a imagem do jogador
-    player_rect = player_image.get_rect(center=(SCREEN_WIDTH / 2, 500))
+    player_rect = player_image.get_rect(center=player_pos)
     screen.blit(player_image, player_rect)
+
+    crime = crimes[current_crime_index]
+    draw_text(crime["enemy_name"], title_font, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.08, center=True)
 
     draw_health_bar()
 
     button_rects = []
-    button_height = 60
-    button_width = SCREEN_WIDTH - 100
-    start_y = 280 # Ajustado Y para dar espaço para as imagens
+    
+    # Coordenadas do centro de cada área de botão, ajustadas para o novo layout
+    button_centers = [
+        (SCREEN_WIDTH * 0.28, SCREEN_HEIGHT * 0.84),  # Botão superior esquerdo
+        (SCREEN_WIDTH * 0.72, SCREEN_HEIGHT * 0.84),  # Botão superior direito
+        (SCREEN_WIDTH * 0.28, SCREEN_HEIGHT * 0.925), # Botão inferior esquerdo
+        (SCREEN_WIDTH * 0.72, SCREEN_HEIGHT * 0.925)  # Botão inferior direito
+    ]
+    
+    button_clickable_size = (SCREEN_WIDTH * 0.4, SCREEN_HEIGHT * 0.07)
+
     for i, option in enumerate(crime["options"]):
-        button_rect = pygame.Rect(50, start_y + i * (button_height + 15), button_width, button_height)
-        button_rects.append(button_rect)
-        pygame.draw.rect(screen, BLUE, button_rect, border_radius=10)
-        pygame.draw.rect(screen, DARK_BLUE, button_rect, width=3, border_radius=10)
-        draw_text(f"{i+1}. {option}", option_font, WHITE, screen, button_rect.centerx, button_rect.centery, center=True)
+        center_pos = button_centers[i]
+        
+        # <<< ALTERADO: Remove o número identificador
+        draw_text(option, option_font, BUTTON_TEXT_COLOR, screen, center_pos[0], center_pos[1], center=True)
+
+        clickable_rect = pygame.Rect((0,0), button_clickable_size)
+        clickable_rect.center = center_pos
+        button_rects.append(clickable_rect)
+        
+        # Descomente a linha abaixo para visualizar as áreas clicáveis
+        # pygame.draw.rect(screen, (255,0,0), clickable_rect, 2)
 
     global feedback_timer
     if feedback_timer > 0:
-        draw_text(feedback_message, feedback_font, feedback_color, screen, SCREEN_WIDTH/2, 250, center=True) # Ajustado Y
+        feedback_y = SCREEN_HEIGHT * 0.25 # Posição do feedback de acerto/erro
+        draw_text(feedback_message, feedback_font, GREEN if feedback_message == "Correto!" else RED, screen, SCREEN_WIDTH/2, feedback_y, center=True)
         if feedback_explanation:
-            draw_text(feedback_explanation, explanation_font, LIGHT_GREY, screen, SCREEN_WIDTH/2, SCREEN_HEIGHT - 20, center=True)
+            explanation_y = SCREEN_HEIGHT * 0.75 # Posição da explicação do erro
+            draw_text(feedback_explanation, explanation_font, WHITE, screen, SCREEN_WIDTH/2, explanation_y, center=True)
         feedback_timer -= 1
 
     return button_rects
 
 
 def draw_health_bar():
-    draw_text("Sua Integridade:", option_font, WHITE, screen, 100, 560, center=True)
-    pygame.draw.rect(screen, RED, (180, 550, max_player_health * 50, 20))
+    # Posição da barra de vida na parte superior esquerda
+    text_x = 100
+    text_y = 50
+    bar_x = 200
+    bar_y = 45
+    segment_width = 50
+    segment_height = 20
+
+    draw_text("Integridade:", option_font, WHITE, screen, text_x, text_y, center=True)
+    pygame.draw.rect(screen, RED, (bar_x, bar_y, max_player_health * segment_width, segment_height))
     if player_health > 0:
-        pygame.draw.rect(screen, GREEN, (180, 550, player_health * 50, 20))
+        pygame.draw.rect(screen, GREEN, (bar_x, bar_y, player_health * segment_width, segment_height))
 
 def draw_end_screen(message, color):
-    screen.fill(BACKGROUND_COLOR)
-    draw_text(message, title_font, color, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 50, center=True)
-    draw_text("Clique para jogar novamente", option_font, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20, center=True)
-
+    screen.blit(combate_bg, (0,0))
+    msg_y = SCREEN_HEIGHT / 2 - 40
+    restart_y = SCREEN_HEIGHT / 2 + 40
+    draw_text(message, title_font, color, screen, SCREEN_WIDTH / 2, msg_y, center=True)
+    draw_text("Clique para jogar novamente", option_font, WHITE, screen, SCREEN_WIDTH / 2, restart_y, center=True)
 
 # --- Loop Principal do Jogo ---
 def main():
@@ -172,10 +203,9 @@ def main():
     
     clock = pygame.time.Clock()
     running = True
-    button_rects = []
+    button_rects = [] 
 
     while running:
-        # --- Processamento de Eventos ---
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -186,35 +216,35 @@ def main():
                 elif game_state == "playing":
                     if feedback_timer <= 0:
                         crime = crimes[current_crime_index]
-                        for i, button_rect in enumerate(button_rects):
-                            if button_rect.collidepoint(event.pos):
-                                if i == crime["correct_option_index"]:
-                                    feedback_message = "Correto!"
-                                    feedback_color = GREEN
-                                    feedback_explanation = ""
-                                    feedback_timer = 90
-                                    current_crime_index += 1
-                                    if current_crime_index >= len(crimes):
-                                        game_state = "victory"
-                                else:
-                                    player_health -= 1
-                                    feedback_message = "Errado!"
-                                    feedback_color = RED
-                                    feedback_explanation = crime["explanation"]
-                                    feedback_timer = 180
-                                    if player_health <= 0:
-                                        game_state = "game_over"
-                else: # Em game_over ou victory, um clique reseta o jogo
-                    game_state = "menu"
+                        if button_rects:
+                            for i, button_rect in enumerate(button_rects):
+                                if button_rect.collidepoint(event.pos):
+                                    if i == crime["correct_option_index"]:
+                                        feedback_message = "Correto!"
+                                        feedback_explanation = ""
+                                        feedback_timer = 90
+                                        current_crime_index += 1
+                                        if current_crime_index >= len(crimes):
+                                            game_state = "victory"
+                                    else:
+                                        player_health -= 1
+                                        feedback_message = "Errado!"
+                                        feedback_explanation = crime["explanation"]
+                                        feedback_timer = 180
+                                        if player_health <= 0:
+                                            game_state = "game_over"
+                else: 
+                    game_state = "menu" 
                     player_health = max_player_health
                     current_crime_index = 0
                     feedback_timer = 0
+                    feedback_message = ""
+                    feedback_explanation = ""
 
-        # --- Lógica de Atualização e Desenho ---
         if game_state == "menu":
             draw_menu_screen()
         elif game_state == "playing":
-            button_rects = draw_game_state()
+            button_rects = draw_game_state() 
         elif game_state == "victory":
             draw_end_screen("VITÓRIA! Você protegeu o sistema!", GREEN)
         elif game_state == "game_over":
