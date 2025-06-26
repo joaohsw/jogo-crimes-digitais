@@ -6,6 +6,12 @@ O objetivo principal do Guardião Digital é educar os jogadores de forma lúdic
 
 Compile o jogo normalmente com o comando `py jogo.py` no CMD.
 
+# Internet Guardian: Digital Threats
+
+This game is a college project developed for the "Computers and Society" course, which is part of the Information Systems curriculum at UFSM. It was developed in Python using the graphical library Pygame.
+
+The main objective of this project is to educate players in an interactive way about the dangers of the most common cyber crimes and the best practices for someone to protect themselves from these threats. With quiz-like mechanics, the player is challenged to defeat villains inspired by these cyber crimes. 
+
 
 ![menu](/assets/menu.png)
 
